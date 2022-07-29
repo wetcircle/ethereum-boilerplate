@@ -7,13 +7,14 @@ import { SearchOutlined } from "@ant-design/icons";
 
 function AddressInput(props) {
   const input = useRef(null);
-  const { web3 } = useMoralis();
+  const { Moralis } = useMoralis();
   const [address, setAddress] = useState("");
   const [validatedAddress, setValidatedAddress] = useState("");
   const [isDomain, setIsDomain] = useState(false);
   const {
     resolve: { resolveDomain },
   } = useMoralisWeb3Api();
+  const ethers = Moralis.web3Library;
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -27,15 +28,21 @@ function AddressInput(props) {
         const processPromise = function (promise) {
           promise
             .then((addr) => {
-              setValidatedAddress(addr);
-              setIsDomain(true);
+              if (addr == null || addr == undefined) {
+                setValidatedAddress("");
+              } else {
+                setValidatedAddress(addr);
+                setIsDomain(true);
+              }
             })
-            .catch(() => {
+            .catch((error) => {
               setValidatedAddress("");
+              console.error(error);
             });
         };
         if (value.endsWith(".eth")) {
-          processPromise(web3?.eth?.ens?.getAddress(value));
+          let provider = new ethers.providers.Web3Provider(Moralis.provider);
+          processPromise(provider.resolveName(value));
         } else {
           processPromise(
             resolveDomain({
@@ -51,7 +58,7 @@ function AddressInput(props) {
         setIsDomain(false);
       }
     },
-    [resolveDomain, web3?.eth?.ens],
+    [resolveDomain, Moralis.provider, ethers.providers.Web3Provider],
   );
 
   const Cross = () => (
